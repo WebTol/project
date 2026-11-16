@@ -1,0 +1,102 @@
+using UnityEngine;
+
+public class player : MonoBehaviour
+{
+    [Header("Настройка движения")]
+    public float speed = 5f; //Скорость бега
+    public float jumpForce = 12f; //Сила прыжка
+    [Header("Проверка земли")]
+    public Transform groundCheck; //Точка под ногами персонажа
+    private float groundCheckRadius = 0.2f; //Радиус круга сенсора
+    public LayerMask groundLayer; // Слой земли
+
+    public bool isGrounded; // Переменная для проверки земли
+    private Rigidbody2D rb; // Подключаем физику
+    private float horizontal_input; // Переменная для движения по оси X
+    private Animator anim; // добавили аниматора
+    [Header ("Прыжок от колючек")]
+    public int jumpDamageForce; //сила прыжка от шипов
+
+    public LayerMask jumpDamageLayer; // добавление слоя к шипам
+
+    public Transform JumpSpikeCheck; // добавляем кружок который будет реагировать на шип
+
+    private float JumpSpikeRadius = 0.2f; //радиус этого кружка
+
+    public bool JumpSpiked; //переменная укололись ли мы
+
+    
+    
+
+    void Start()
+    {
+        //Находим компонент физики один раз при старте
+        rb = GetComponent<Rigidbody2D>();
+        // Находим компоненты аниматора
+        anim = GetComponent<Animator>();
+
+        
+        
+    }
+
+
+    void Update()
+    {
+        //Считываем нажатия клавиш ( по горизонтале то есть вправо и влево)
+        horizontal_input = Input.GetAxisRaw("Horizontal");
+        //Задаем движение персонажа с помощью физики по оси x, а по оси Y сохраняем
+        rb.linearVelocity = new Vector2(horizontal_input * speed, rb.linearVelocity.y);
+
+        //Разворачиваем персонажа
+        Flip();
+
+        //Проверяем стоим ли на земле
+        if (groundCheck != null)
+        {
+            isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+        }
+        //проверяем косаемся ли мы шипов
+        if (JumpSpikeCheck != null)
+        {
+            JumpSpiked = Physics2D.OverlapCircle(JumpSpikeCheck.position, JumpSpikeRadius, jumpDamageLayer);
+        }
+        //если косаемся то прыгаем
+        if (JumpSpiked)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpDamageForce);
+        }
+
+        //Прыгаем, только если нажат Пробел И персонаж на земле!
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+        }
+
+        if (anim != null)
+        {
+            anim.SetFloat("speed", Mathf.Abs(horizontal_input));
+            anim.SetBool("IsGround", isGrounded);
+        }
+    }
+    private void Flip()
+    {
+        if (horizontal_input > 0)
+        {
+            transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+        }
+        else if (horizontal_input < 0)
+        {
+            transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+        }
+    }
+
+    //Рисуем красный шарик под ногами в окне Scene для настройки
+    private void OnDrawGizmosSelected()
+    {
+        if (groundCheck != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+        }
+    }
+}
